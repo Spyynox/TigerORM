@@ -1,7 +1,11 @@
 {
     "autoload": {
         "psr-0": {
-            "": "src/"
+            "TigerORM": "src/"
+        },
+        "psr-4": {
+            "": "public/"
         }
+
     }
 }
