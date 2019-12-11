@@ -26,6 +26,41 @@ class TigerORM {
         $req->execute($values);
     }
 
+    public function findAll($class) {
+        $req = $pdo->prepare('SELECT * FROM'.$class);
+        $req->execute();
+        $objs = $this->fetchAllObjects($req, $class);
+
+        return $objs;
+    }
+
+    public function findBy($class, $field, $value) {
+        $req = $pdo->prepare('SELECT * FROM'.$class.' WHERE '.$field.'=?');
+        $req->execute($value);
+        $objs = $this->fetchAllObjects($req, $class);
+
+        return $objs;
+    }
+
+    private function fetchAllObjects($req, $class) {
+        $objs = [];
+        $isDone = false;
+
+        while (!$isDone) {
+            $object = $req->fetchObject($class);
+
+            if ($object != false) {
+                array_push($objs, $object);
+            }
+            else {
+                $isDone = true;
+            }
+            
+        }
+
+        return $objs;
+    }
+
     // see fetchObject PDO
 
 }
