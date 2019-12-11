@@ -27,16 +27,42 @@ class TigerORM {
     }
 
     public function findAll($class) {
-        $req = $pdo->prepare('SELECT * FROM'.$class);
+        $req = $pdo->prepare('SELECT * FROM '.$class);
         $req->execute();
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
     }
 
-    public function findBy($class, $field, $value) {
-        $req = $pdo->prepare('SELECT * FROM'.$class.' WHERE '.$field.'=?');
-        $req->execute($value);
+    public function findOne($class, $id) {
+        $req = $pdo->prepare('SELECT * FROM '.$class.' WHERE id=?');
+        $req->execute($id);
+        $objs = $this->fetchAllObjects($req, $class);
+
+        return $objs;
+    }
+
+    public function findBy($class, $fields, $values) {
+        $where = array_map($this->addQuestionMarks, $fields);
+        $req = $pdo->prepare('SELECT * FROM '.$class.' WHERE '.$where);
+        $req->execute($id);
+        $objs = $this->fetchAllObjects($req, $class);
+
+        return $objs;
+    }
+
+    public function findAllOrdered($class, $orderBy) {
+        $req = $pdo->prepare('SELECT * FROM  '.$class.' ORDER BY '.$orderBy);
+        $req->execute();
+        $objs = $this->fetchAllObjects($req, $class);
+
+        return $objs;
+    }
+
+    public function findByOrdered($class, $fields, $values, $orderBy) {
+        $where = array_map($this->addQuestionMarks, $fields);
+        $req = $pdo->prepare('SELECT * FROM '.$class.' WHERE '.$where.' ORDER BY '.$orderBy);
+        $req->execute($id);
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
@@ -59,6 +85,10 @@ class TigerORM {
         }
 
         return $objs;
+    }
+
+    private function addQuestionMarks($field) {
+        return $field."=?";
     }
 
     // see fetchObject PDO
