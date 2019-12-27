@@ -8,9 +8,9 @@ class TigerORM {
     private $config;
 
     function __construct($dbname, $dbuser, $dbpass, $configFile) {
-        $this->db = new \PDO('mysql:host=localhost;dbname='.$dbname, $user, $pass);
-        $content = file_get_contents($configFile);
-        $this->config = json_decode($content);
+        $this->db = new \PDO('mysql:host=localhost:8889;dbname='.$dbname, $dbuser, $dbpass);
+        $content = file_get_contents(__DIR__.'/../../public/'.$configFile);
+        $this->config = json_decode($content, true);
     }
 
     public function save($object) {
@@ -23,7 +23,7 @@ class TigerORM {
         }
 
         $query = "INSERT INTO ".$table."(".implode(", ", $fields).") VALUES (".implode(", ", $questionMarks).")";
-        $req = $this->executeQuery($query, $values);
+        $req = $this->executeQuery($query, array_values($values));
         $objs = $this->fetchAllObjects($req, $class);
     }
 
@@ -44,9 +44,10 @@ class TigerORM {
     }
 
     public function findBy($class, $fields, $values) {
-        $where = array_map($this->addQuestionMarks, $fields).\join(" AND ");
-        $req = $pdo->prepare('SELECT * FROM '.$class.' WHERE '.$where);
-        $req->execute($id);
+        $where = array_map(array($this,'addQuestionMarks'), $fields);
+        $where = implode(" AND ", $where);
+        $query = 'SELECT * FROM '.$class.' WHERE '.$where;
+        $req = $this->executeQuery($query, $values);
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
@@ -61,29 +62,33 @@ class TigerORM {
     }
 
     public function findByOrdered($class, $fields, $values, $orderBy) {
-        $where = array_map($this->addQuestionMarks, $fields).\join(" AND ");
+        $where = array_map(array($this,'addQuestionMarks'), $fields);
+        $where = implode(" AND ", $where);
         $query = 'SELECT * FROM '.$class.' WHERE '.$where.' ORDER BY '.$orderBy;
-        $req = $this->executeQuery($query, [$id]);
+        $req = $this->executeQuery($query, $values);
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
     }
 
-    public function update($class, $fieldsToUpdate, $newValues, $conditionField, $conditionValue) {
-        $updates = \array_map($this->addQuestionMarks, $fieldsToUpdate).\join(", ");
-        $where = \array_map($this->addQuestionMarks, $conditionField).\join(" AND ");
+    public function update($class, $fieldsToUpdate, $newValues, $conditionFields, $conditionValues) {
+        $updates = array_map(array($this,'addQuestionMarks'), $fieldsToUpdate);
+        $updates = implode(", ", $updates);
+        $where = array_map(array($this,'addQuestionMarks'), $conditionFields);
+        $where = implode(" AND ", $where);
         $query = 'UPDATE '.$class.' SET '.$updates.' WHERE '.$where;
-        array_push($newValues, $conditionValue);
-        $req = $this->executeQuery($query, $newValues);
+        $values = array_merge($newValues, $conditionValues);
+        $req = $this->executeQuery($query, $values);
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
     }
 
     public function delete($class, $fields, $values) {
-        $where = \array_map($this->addQuestionMarks, $fields).\join(" AND ");
+        $where = array_map(array($this,'addQuestionMarks'), $fields);
+        $where = implode(" AND ", $where);
         $query = "DELETE FROM ".$class." WHERE ".$where;
-        $req = $this->executeQuery($query, [$values]);
+        $req = $this->executeQuery($query, $values);
         $objs = $this->fetchAllObjects($req, $class);
 
         return $objs;
@@ -97,9 +102,10 @@ class TigerORM {
     }
 
     public function exists($class, $fields, $values) {
-        $where = \array_map($this->addQuestionMarks, $fields).\join(" AND ");
-        $query = "SELECT * FROM ".$class." WHERE EXISTS ( SELECT * FROM ".$class." WHERE ".$where;
-        $req = $this->executeQuery($query, [$values]);
+        $where = array_map(array($this,'addQuestionMarks'), $fields);
+        $where = implode(" AND ", $where);
+        $query = "SELECT * FROM ".$class." WHERE EXISTS ( SELECT * FROM ".$class." WHERE ".$where.")";
+        $req = $this->executeQuery($query, $values);
         
         return $req->fetchColumn();
     }
@@ -107,7 +113,7 @@ class TigerORM {
     private function executeQuery($query, $values) {
         $date = \date("Y-M-d hh:mm");
         try { 
-            $req = $PDO->prepare($query);
+            $req = $this->db->prepare($query);
 
             if (!empty($values)) {
                 $req->execute($values);
@@ -144,22 +150,17 @@ class TigerORM {
         return $objs;
     }
 
-    private function addQuestionMarks($field) {
+    public static function addQuestionMarks($field) {
         return $field."=?";
     }
 
     private function addLogs($isError, $request, $date, $details) {
         if (!$isError) {
-            \file_put_contents("request.log", $request." at ".$date." : ".$details, FILE_APPEND);
+            \file_put_contents("request.log", $request." at ".$date." : ".$details."\n", FILE_APPEND);
         }
         else {
-            \file_put_contents("error.log", $request." at ".$date." : ".$details, FILE_APPEND);
+            \file_put_contents("error.log", $request." at ".$date." : ".$details."\n", FILE_APPEND);
         }
     }
-
-    // see fetchObject PDO
-    // see https://stackoverflow.com/questions/19898688/how-to-create-a-logfile-in-php for the logs
-    // see https://stackoverflow.com/questions/15275689/error-checking-for-pdo-prepared-statements for the errors
-    // https://www.php.net/manual/fr/pdo.errorinfo.php
 
 }

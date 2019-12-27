@@ -5,15 +5,12 @@ use TigerORM\TigerORM;
 require_once("vendor/autoload.php");
 
 $film = new Film();
-$film->title = "Avatar";
-$film->description = "Adventure movie";
+$film->title = "Star Wars";
+$film->description = "Sci-Fi movie";
 
-var_dump($film);
-
-$orm = new TigerORM("tigerOrm", "root", "root", __DIR__."/public/ORMConfig.json");
-$orm->save($film);
+$orm = new TigerORM("tigerOrm", "root", "root", "ORMConfig.json");
+// $orm->save($film);
 $films = $orm->findAll("Film");
+$test = $orm->exists("Film", ["title"], ["Star Wars"]);
 
-foreach ($films as $key => $film) {
-    echo $film->title;
-}
+var_dump($test);

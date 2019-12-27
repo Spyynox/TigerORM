@@ -22,3 +22,6 @@ composer.phar
 .history
 
 # End of https://www.gitignore.io/api/composer,visualstudiocode
+
+request.log
+error.log
